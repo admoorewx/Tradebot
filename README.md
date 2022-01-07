@@ -3,4 +3,4 @@ Tradebot is a stock trading algorithm that currently relies on Support Vector Re
 
 This tool uses a combination of the Alpaca API (https://alpaca.markets/) for brokerage purposes and the yfinance API (https://github.com/ranaroussi/yfinance) to retrive stock data. 
 
-Dependency requirements can be found in the environment.txt file. 
+Dependency requirements can be found in the trade_bot_env.txt file. 
