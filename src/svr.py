@@ -60,18 +60,24 @@ def SVR_forecast(stock,period="6mo",interval="1h",forecast_length=24,ensemble_me
             for ff in forecast[forecast_window_start:]:
                 recs.append((ff-last_yp))
 
-    # Get the buy/sell/hold recommendation
+    # Get the buy/sell/hold recommendation and reason
     if np.mean(valid_forecasts) > 0.4:
         if np.mean(recs) > 0.0:
-            return"BUY"
+            reccomendation = "BUY"
+            reason = "Price Expected to rise."
         elif np.mean(recs) < 0.0:
-            return "SELL"
+            reccomendation =  "SELL"
+            reason = "Price Expected to fall."
         else:
-            return "HOLD POSITION"
+            reccomendation =  "PASS"
+            reason = "Little price fluctuation expected."
     elif np.var(model_fits) <= 0.008:
-        return "HOLD POSITION (Model Overfit)"
+        reccomendation =  "PASS"
+        reason = "Potential model overfit."
     else:
-        return "HOLD POSITION (Inaccurate Forecast)"
+        reccomendation = "PASS"
+        reason = "Inaccurate forecast initialization."
+    return reccomendation, reason
 
 
 def SVR_forecast_train(stock,period="6mo",interval="1h",forecast_length=24,ensemble_members=100):
@@ -137,24 +143,29 @@ def SVR_forecast_train(stock,period="6mo",interval="1h",forecast_length=24,ensem
     if np.mean(valid_forecasts) > 0.4:
         if np.mean(recs) > 0.0:
             recommend = "BUY"
+            reason = "Price Expected to rise."
             net = y[-1] - y[end]
         elif np.mean(recs) < 0.0:
             recommend = "SELL"
+            reason = "Price Expected to fall."
             net = y[-1] - y[end]
         else:
-            recommend = "HOLD POSITION"
+            recommend = "PASS"
+            reason = "Little price fluctuation expected."
             net = 0.0
     elif np.var(model_fits) <= 0.008:
-        recommend = "HOLD POSITION (Model Overfit)"
+        recommend = "PASS"
+        reason = "Potential model overfit."
         net = 0.0
     else:
-        recommend = "HOLD POSITION (Inaccurate Forecast)"
+        recommend = "PASS"
+        reason = "Inaccurate model initialization."
         net = 0.0
 
-    return recommend, net
+    return recommend, reason, net
 
 
-def SVR_forecast_train_diagnosis(stock,period="6mo",interval="1h",forecast_length=24,ensemble_members=100):
+def SVR_forecast_train_diagnosis(stock,period="6mo",interval="1h",forecast_length=48,ensemble_members=100):
     """
     Performs an SVR regression ensemble forecast and returns a recommendation. Main difference from
     the traditional SVR_forecast is that this version saves figures and outputs helpful statistics.
@@ -176,7 +187,7 @@ def SVR_forecast_train_diagnosis(stock,period="6mo",interval="1h",forecast_lengt
 
     start = 0
     end = len(y) - forecast_length
-    min_hours = 19
+    min_hours = 20
 
     recs = []
     valid_forecasts = []
@@ -225,18 +236,23 @@ def SVR_forecast_train_diagnosis(stock,period="6mo",interval="1h",forecast_lengt
     if np.mean(valid_forecasts) > 0.4:
         if np.mean(recs) > 0.0:
             recommend = "BUY"
+            reason = "Price Expected to rise."
             net = y[-1] - y[end]
         elif np.mean(recs) < 0.0:
             recommend = "SELL"
-            net = y[-1] - y[end]
+            reason = "Price Expected to fall."
+            net = y[end] - y[-1]
         else:
-            recommend = "HOLD POSITION"
+            recommend = "PASS"
+            reason = "Little price fluctuation expected."
             net = 0.0
     elif np.var(model_fits) <= 0.008:
-        recommend = "HOLD POSITION (Model Overfit)"
+        recommend = "PASS"
+        reason = "Potential model overfit."
         net = 0.0
     else:
-        recommend = "HOLD POSITION (Inaccurate Forecast)"
+        recommend = "PASS"
+        reason = "Inaccurate model initialization."
         net = 0.0
 
     # Plot the price data and save the figure
@@ -248,15 +264,15 @@ def SVR_forecast_train_diagnosis(stock,period="6mo",interval="1h",forecast_lengt
     plt.close('all')
 
     # Print out some statistics
-    print(f'Produced {len(error)} forecasts for {stock}:')
-    print(f'Forecast average RMSE: {np.mean(error)}')
-    print(f'Forecast Std Deviation: {np.std(error)}')
-    print(f'Forecast Variance: {np.var(error)}')
-    print(f'Model Fit Error Variance: {np.var(model_fits)}')
-    print(f'Model Fit Error Std Deviation: {np.std(model_fits)}')
-    print(f'{stock} Std Deviation: {np.std(y)}')
-    print(f'{stock} Variance: {np.var(y)}')
-    print(f'Mean Rec Value: {np.mean(recs)}')
-    print(f'Recommendation: {recommend}\n')
+    # print(f'Produced {len(error)} forecasts for {stock}:')
+    # print(f'Forecast average RMSE: {np.mean(error)}')
+    # print(f'Forecast Std Deviation: {np.std(error)}')
+    # print(f'Forecast Variance: {np.var(error)}')
+    # print(f'Model Fit Error Variance: {np.var(model_fits)}')
+    # print(f'Model Fit Error Std Deviation: {np.std(model_fits)}')
+    # print(f'{stock} Std Deviation: {np.std(y)}')
+    # print(f'{stock} Variance: {np.var(y)}')
+    # print(f'Mean Rec Value: {np.mean(recs)}')
+    # print(f'Recommendation: {recommend}\n')
     # Return the recommendation (and for now the net change)
-    return recommend, net
+    return recommend, reason, net
