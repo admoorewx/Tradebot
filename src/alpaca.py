@@ -2,7 +2,7 @@ from alpaca_trade_api.rest import REST, TimeFrame
 import os
 
 os.environ['APCA_API_BASE_URL'] = 'https://paper-api.alpaca.markets'
-api = REST('PK9KGYIPW7688M5ID39S', 'CrnWvypaW0iCZHqGgL2O3QjJbBPIVAImBJFeVcBX', api_version='v2')
+api = REST('', '', api_version='v2')
 account = api.get_account()
 
 
