@@ -52,7 +52,7 @@ def get_position_quantity(stock):
 
 def buy(stock,qnty):
     api.submit_order(
-        symobol=stock,
+        symbol=stock,
         qty=qnty,
         side='buy',
         type='market',
@@ -61,7 +61,7 @@ def buy(stock,qnty):
 
 def sell(stock,qnty):
     api.submit_order(
-        symobol=stock,
+        symbol=stock,
         qty=qnty,
         side='sell',
         type='market',

@@ -1,5 +1,6 @@
 import sqlite3
 import json
+from functions import currentTime
 
 def database():
     connection = sqlite3.connect('stocks.db')
@@ -31,7 +32,7 @@ def initialize():
     cursor.execute(create_talbes)
     connection.commit()
     connection.close()
-    print("Stock database created successfully")
+    print(f'{currentTime()}: Stock database created successfully')
 
 def add_stock_from_json(json_file):
     connection, cursor = database()
@@ -42,7 +43,7 @@ def add_stock_from_json(json_file):
             cursor.execute(add_command)
     connection.commit()
     connection.close()
-    print("Added stocks successfully.")
+    print(f'{currentTime()}: Added stocks successfully.')
 
 def get_all_stock_info():
     connection, cursor = database()
@@ -60,17 +61,17 @@ def get_stock_info(stock):
 
 def update_stock(stock,owned,transaction,transaction_time,transaction_price,reason):
     connection, cursor = database()
-    update_owned = f'UPDATE emp SET owned = "{owned}" WHERE symbol="{stock}";'
-    update_transaction = f'UPDATE emp SET last_transaction = "{transaction}" WHERE symbol="{stock}";'
-    update_transaction_time = f'UPDATE emp SET last_transaction_time = "{transaction_time}" WHERE symbol="{stock}";'
-    update_transaction_price = f'UPDATE emp SET transaction_price = "{transaction_price}" WHERE symbol="{stock}";'
-    update_reason = f'UPDATE emp SET transaction_reason = "{reason}" WHERE symbol="{stock}";'
+    update_owned = f'UPDATE stocks SET owned = "{owned}" WHERE symbol="{stock}";'
+    update_transaction = f'UPDATE stocks SET last_transaction = "{transaction}" WHERE symbol="{stock}";'
+    update_transaction_time = f'UPDATE stocks SET last_transaction_time = "{transaction_time}" WHERE symbol="{stock}";'
+    update_transaction_price = f'UPDATE stocks SET transaction_price = "{transaction_price}" WHERE symbol="{stock}";'
+    update_reason = f'UPDATE stocks SET transaction_reason = "{reason}" WHERE symbol="{stock}";'
     commands = [update_owned, update_transaction, update_transaction_time, update_transaction_price, update_reason]
     for command in commands:
         cursor.execute(command)
     connection.commit()
     connection.close()
-    print(f'Updated stock {stock} successfully.')
+    print(f'{currentTime()}: Updated stock {stock} successfully.')
 
 def delete_stock(stock):
     connection, cursor = database()
@@ -78,7 +79,7 @@ def delete_stock(stock):
     cursor.execute(delete_command)
     connection.commit()
     connection.close()
-    print(f'Deleted stock {stock} successfully.')
+    print(f'{currentTime()}: Deleted stock {stock} successfully.')
 
 
 

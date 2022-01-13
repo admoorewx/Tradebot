@@ -12,6 +12,7 @@ import numpy as np
 import os
 import seaborn as sns; sns.set()
 import pandas as pd
+import datetime
 
 def root_mean_squared_error(truth,est):
     truth = np.asarray(truth)
@@ -224,3 +225,25 @@ def determine_quantity(stock,cash,percentage):
     else:
         qty = round((percentage*cash)/stock_price,3)
         return str(qty)
+
+def high_low_check(price_hist, period_length):
+    """
+    Check to see if the price history has reach a relative max or min in the last "period_length"
+    number of periods. If so, send a "buy" or "sell" signal. If not, send a "pass" signal.
+    """
+    max_thres = 0.95
+    min_thres = 0.05
+    price_hist = np.asarray(price_hist)
+    checkmax = np.where(price_hist[-period_length:] >= max_thres)
+    checkmin = np.where(price_hist[-period_length:] <= min_thres)
+    if np.any(checkmax):
+        return -1 # if hitting max, sell
+    elif np.any(checkmin):
+        return 1 # if hitting min, buy
+    else:
+        return 0
+
+def currentTime():
+    now = datetime.datetime.utcnow()
+    return datetime.datetime.strftime(now, "%m/%d/%Y %H:%M:%S")
+

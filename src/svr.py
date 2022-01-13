@@ -24,6 +24,7 @@ def SVR_forecast(stock,period="6mo",interval="1h",forecast_length=24,ensemble_me
     y = np.asarray(price)
 
     forecast_periods = [X[-1] + i for i in range(0,forecast_length)]
+    forecast_periods = np.asarray(forecast_periods)
     forecast_window_start = -4 # default is # of hours before the default 24-hour mark.
     # Recommendation is to keep this value at 5 hours or less to help avoid PDT rules and give a more accurate forecast.
 
