@@ -131,4 +131,3 @@ def create_report(email=False):
             report.writelines(lines)
         report.close()
 
-create_report(email=True)
