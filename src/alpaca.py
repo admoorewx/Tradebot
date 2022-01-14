@@ -2,13 +2,12 @@ from alpaca_trade_api.rest import REST, TimeFrame
 import os
 
 os.environ['APCA_API_BASE_URL'] = 'https://paper-api.alpaca.markets'
-api = REST('', '', api_version='v2')
+api = REST('PK9KGYIPW7688M5ID39S', 'CrnWvypaW0iCZHqGgL2O3QjJbBPIVAImBJFeVcBX', api_version='v2')
 account = api.get_account()
 
 
 def accountStatus():
     if account.trading_blocked:
-        print("Account is currently blocked.")
         return False
     else:
         return True
@@ -31,10 +30,8 @@ def gainloss():
 def check_market_hours():
     clock = api.get_clock()
     if clock.is_open:
-        print("The market is open!")
         return True
     else:
-        print("The market is closed!")
         return False
 
 def tradable_status(stock):

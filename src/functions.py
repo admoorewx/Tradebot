@@ -13,6 +13,7 @@ import os
 import seaborn as sns; sns.set()
 import pandas as pd
 import datetime
+from finta import TA
 
 def root_mean_squared_error(truth,est):
     truth = np.asarray(truth)
@@ -32,53 +33,6 @@ def delta_to_binary(x):
             bins.append(0)
     return bins
 
-def discretize_delta(x):
-    thres = np.std(x)
-    cats = []
-    for i in x:
-        if i == 0.0:
-            cats.append(0)
-        elif i < 0:
-            if i < -thres:
-                cats.append(1)
-            else:
-                cats.append(2)
-        else:
-            if i < thres:
-                cats.append(3)
-            else:
-                cats.append(4)
-    return cats
-
-def RSI(x,interval=14):
-    interval = interval + 1
-    RSI = []
-    for i in range(len(x)):
-        if i < interval:
-            if i == 0:
-                start = i
-                end = 1
-            else:
-                start = 0
-                end = i
-        else:
-            start = i - interval
-            end = i
-
-        tmp = np.asarray(x[start:end])
-        pos_vals = np.where(tmp > 0.0, tmp, 0.0)
-        neg_vals = np.where(tmp < 0.0, np.abs(tmp), 0.0)
-        pos_mean = np.nanmean(pos_vals)
-        neg_mean = np.nanmean(neg_vals)
-        if neg_mean == 0.0:
-            neg_mean = 1.0
-        if pos_mean == 0.0:
-            pos_mean = 1.0
-        RS = pos_mean/neg_mean
-        RSI.append(100.0 - (100.0/(1.0+RS)))
-
-    return RSI
-
 def momentum(x,interval=10):
     mo = []
     for i in range(len(x)):
@@ -90,17 +44,6 @@ def momentum(x,interval=10):
             end = i
         mo.append(x[end] - x[start])
     return mo
-
-def running_average(data,window_size,fill=False):
-    window = np.ones(int(window_size))/float(window_size)
-    if fill:
-        sma = np.convolve(data,window,'valid')
-        while len(sma) < len(data):
-            sma = np.insert(sma,0,np.nan)
-        return sma
-
-    else:
-        return np.convolve(data,window,'valid')
 
 def delta(x):
     deltas = [x[i+1] - x[i] for i in range(0,len(x)-1)]
@@ -183,39 +126,9 @@ def preprocess(hist):
     hist["High"] = clean_data(X,hist["High"])
     hist["Low"] = clean_data(X,hist["Low"])
     hist["Volume"] = clean_data(X,hist["Volume"])
-    # Get the deltas for later params
-    hist["dClose"] = delta(hist["Close"])
-    # Get derived values
-    hist["RSI"] = RSI(hist["dClose"],interval=14)
-    hist["Momentum"] = momentum(hist["Close"],interval=10)
-    hist["VolMom"] = momentum(hist["Volume"],interval=10)
-    # Normalize the data
-    hist["Open"] = normalize(hist["Open"])
-    hist["Close"] = normalize(hist["Close"])
-    hist["High"] = normalize(hist["High"])
-    hist["Low"] = normalize(hist["Low"])
-    hist["Volume"] = normalize(hist["Volume"])
-    hist["Momentum"] = normalize(hist["Momentum"])
-    hist["VolMom"] = normalize(hist["VolMom"])
-    # get the normalized dClose
-    hist["dOpen"] = delta(hist["Open"])
-    hist["dClose"] = delta(hist["Close"])
-    hist["dHigh"] = delta(hist["High"])
-    hist["dLow"] = delta(hist["Low"])
-    hist["dVolume"] = delta(hist["Volume"])
-    hist["dMom"] = delta(hist["Momentum"])
-    hist["dRSI"] = delta(hist["RSI"])
-
-    # Set the index to X value
-    hist["Index"] = X
-    hist = hist.set_index('Index')
     # Delete params that aren't needed
     del hist["Dividends"]
     del hist["Stock Splits"]
-    # del hist["Open"]
-    # del hist["Close"]
-    # del hist["High"]
-    # del hist["Low"]
     return hist
 
 def determine_quantity(stock,cash,percentage):
@@ -247,3 +160,20 @@ def currentTime():
     now = datetime.datetime.utcnow()
     return datetime.datetime.strftime(now, "%m/%d/%Y %H:%M:%S")
 
+def SMA(df,window):
+    return TA.SMA(df,window)
+
+def bbands(df):
+    return TA.BBANDS(df)
+
+def EMA(df,window):
+    return TA.EMA(df,window)
+
+def RSI(df):
+    return TA.RSI(df)
+
+def VWAP(df):
+    return TA.VWAP(df)
+
+def markmo(df):
+    return TA.MOM(df)
