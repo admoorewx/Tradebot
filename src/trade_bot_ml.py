@@ -21,14 +21,14 @@ def high_low_trade(stock,symbols):
         qnty = determine_quantity(stock,cash,max_risk)
         last_price = yahoo_price(stock, period='1d', interval='1m')[-1]
         transaction_time = DT.datetime.strftime(DT.datetime.utcnow(), "%m/%d/%Y %H:%M")
-        print(f'{currentTime()}: High/Low Check: Purchasing {qnty} shares of {stock} at price ${last_price} per share at {transaction_time} UTC.\n')
+        print(f'{currentTime()}: High/Low Check: Purchasing {qnty} shares of {stock} at price ${last_price} per share at {transaction_time} UTC.')
         # Update the stock database
         update_stock(stock,1,"BUY",transaction_time,last_price,"Relative Min")
         buy(stock,qnty)
     elif signal == -1 and stock in symbols:
         last_price = yahoo_price(stock, period='1d', interval='1m')[-1]
         transaction_time = DT.datetime.strftime(DT.datetime.utcnow(), "%m/%d/%Y %H:%M")
-        print(f'{currentTime()}: High/Low Check: Selling all shares of {stock} at price ${last_price} per share at {transaction_time} UTC.\n')
+        print(f'{currentTime()}: High/Low Check: Selling all shares of {stock} at price ${last_price} per share at {transaction_time} UTC.')
         # Update the stock database
         update_stock(stock,0,"SELL",transaction_time,last_price,"Relative Max")
         sell(stock,get_position_quantity(stock))
@@ -46,17 +46,17 @@ def SVR_trade(stock,symbols):
     if recommendation == "BUY" and stock not in symbols:
         cash = checkCash()
         qnty = determine_quantity(stock, cash, max_risk)
-        print(f'{currentTime()}: Purchasing {qnty} shares of {stock} at price ${last_price} per share at {transaction_time} UTC.\n')
+        print(f'{currentTime()}: Purchasing {qnty} shares of {stock} at price ${last_price} per share at {transaction_time} UTC.')
         # Update the stock database
         update_stock(stock,1,"BUY",transaction_time,last_price,reason)
         buy(stock,qnty)
     elif recommendation == "SELL" and stock in symbols:
-        print(f'{currentTime()}: Selling all shares of {stock} at price ${last_price} per share at {transaction_time} UTC.\n')
+        print(f'{currentTime()}: Selling all shares of {stock} at price ${last_price} per share at {transaction_time} UTC.')
         # Update the stock database
         update_stock(stock,0,"SELL",transaction_time,last_price,reason)
         sell(stock,get_position_quantity(stock))
     else:
-        print(f'{currentTime()}: Passing on {stock} at price ${last_price} per share at {transaction_time} UTC.\n')
+        print(f'{currentTime()}: Passing on {stock} at price ${last_price} per share at {transaction_time} UTC.')
         # Update the stock database
         if stock in symbols:
             update_stock(stock,1,"PASS",transaction_time,last_price,reason)
@@ -85,6 +85,7 @@ if check_market_hours():
             if time_delta.total_seconds() > min_wait_time:
                 # Check to see if we have enough cash to buy. If not, sell off stocks.
                 if checkCash() > min_cash_limit:
+                    print("\n")
                     print(f'{currentTime()}: Valid conditions for trading {stock}. Getting forecast.')
                     # Do a min/max check first
                     signal = high_low_trade(stock,symbols)
@@ -93,6 +94,7 @@ if check_market_hours():
                         SVR_trade(stock,symbols)
                 else:
                     # Sell assets until funds are above the minimum
+                    print("\n")
                     print(f'{currentTime()}: Not enough cash! Selling off assets to raise funds...')
                     cash = checkCash()
                     while cash < min_cash_limit:
