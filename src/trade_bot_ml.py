@@ -1,12 +1,12 @@
 import datetime as DT
 from svr import SVR_forecast
 from alpaca import accountStatus, get_positions, buy, sell, get_position_quantity, checkCash, check_market_hours
-from functions import determine_quantity, yahoo_price, high_low_check, normalize, currentTime
-from stock_db import update_stock, get_stock_info, get_all_stock_info
+from functions import determine_quantity, yahoo_price, high_low_check, normalize, currentTime, yahoo_current_price
+from stocks_db import update_stock_transaction, update_bought_price, update_sold_price, get_stock_info, get_all_stock_info
 
 # Set tunable parameters
 # Minimum allowed cash value before selling stocks to recoup losses
-min_cash_limit = 90000.0
+min_cash_limit = 80000.0
 # Minimum amount of time (in seconds) that much elapse before a stock can be bought/sold again.
 min_wait_time = 72000.0
 # Maximum percentage of total cash willing to risk on a single buy
@@ -19,49 +19,82 @@ def high_low_trade(stock,symbols):
     if signal == 1 and stock not in symbols:
         cash = checkCash()
         qnty = determine_quantity(stock,cash,max_risk)
-        last_price = yahoo_price(stock, period='1d', interval='1m')[-1]
+        last_price = yahoo_current_price(stock)
         transaction_time = DT.datetime.strftime(DT.datetime.utcnow(), "%m/%d/%Y %H:%M")
-        print(f'{currentTime()}: High/Low Check: Purchasing {qnty} shares of {stock} at price ${last_price} per share at {transaction_time} UTC.')
         # Update the stock database
-        update_stock(stock,1,"BUY",transaction_time,last_price,"Relative Min")
+        update_stock_transaction(stock, "BUY",transaction_time,"Relative Min")
+        update_bought_price(stock,last_price,False)
+        # Send the "buy" command to alpaca
         buy(stock,qnty)
+        # Log this transaction
+        print(f'{currentTime()}: High/Low Check: Purchasing {qnty} shares of {stock} at price ${last_price} per share at {transaction_time} UTC.')
+
     elif signal == -1 and stock in symbols:
-        last_price = yahoo_price(stock, period='1d', interval='1m')[-1]
+        last_price = yahoo_current_price(stock)
         transaction_time = DT.datetime.strftime(DT.datetime.utcnow(), "%m/%d/%Y %H:%M")
-        print(f'{currentTime()}: High/Low Check: Selling all shares of {stock} at price ${last_price} per share at {transaction_time} UTC.')
         # Update the stock database
-        update_stock(stock,0,"SELL",transaction_time,last_price,"Relative Max")
+        update_stock_transaction(stock, "SELL",transaction_time,"Relative Max")
+        update_bought_price(stock,last_price,True)
+        # Send the "sell" command to alpaca
         sell(stock,get_position_quantity(stock))
+        # Log the transaction
+        print(f'{currentTime()}: High/Low Check: Selling all shares of {stock} at price ${last_price} per share at {transaction_time} UTC.')
     else:
         pass
     return signal
 ########################################################################################################################
-def SVR_trade(stock,symbols):
+def SVR_trade(stock):
     # Proceed to generate a forecast.
     recommendation, reason = SVR_forecast(stock)
     print(f'{currentTime()}: SVR forecast {stock} Recommendation: {recommendation} with reason: {reason}')
-    # end of testing
-    last_price = yahoo_price(stock, period='1d', interval='1m')[-1]
+    # Get the current position of the stock
+    position = get_stock_info(stock)[1]
+    last_price = yahoo_current_price(stock)
     transaction_time = DT.datetime.strftime(DT.datetime.utcnow(), "%m/%d/%Y %H:%M")
-    if recommendation == "BUY" and stock not in symbols:
+    if recommendation == "BUY" and position == "NONE":
+        # Open a LONG position
         cash = checkCash()
         qnty = determine_quantity(stock, cash, max_risk)
-        print(f'{currentTime()}: Purchasing {qnty} shares of {stock} at price ${last_price} per share at {transaction_time} UTC.')
         # Update the stock database
-        update_stock(stock,1,"BUY",transaction_time,last_price,reason)
+        update_stock_transaction(stock, "BUY",transaction_time,reason)
+        update_bought_price(stock,last_price,False)
+        # Send the "buy" command to alpaca
         buy(stock,qnty)
-    elif recommendation == "SELL" and stock in symbols:
-        print(f'{currentTime()}: Selling all shares of {stock} at price ${last_price} per share at {transaction_time} UTC.')
+        # Log this transaction
+        print(f'{currentTime()}: Purchasing {qnty} shares of {stock} at price ${last_price} per share at {transaction_time} UTC.')
+    elif recommendation == "SELL" and position == "LONG":
+        # Close a LONG position
         # Update the stock database
-        update_stock(stock,0,"SELL",transaction_time,last_price,reason)
+        update_stock_transaction(stock, "SELL", transaction_time, reason)
+        update_sold_price(stock, last_price, True)
+        # Send the "sell" command to alpaca
         sell(stock,get_position_quantity(stock))
-    else:
-        print(f'{currentTime()}: Passing on {stock} at price ${last_price} per share at {transaction_time} UTC.')
+        # Log this transaction
+        print(f'{currentTime()}: Selling all shares of {stock} at price ${last_price} per share at {transaction_time} UTC.')
+    elif recommendation == "SELL" and position == "NONE":
+        # Open a SHORT Position
+        cash = checkCash()
+        qnty = determine_quantity(stock, cash, max_risk)
         # Update the stock database
-        if stock in symbols:
-            update_stock(stock,1,"PASS",transaction_time,last_price,reason)
-        else:
-            update_stock(stock,0,"PASS",transaction_time,last_price,reason)
+        update_stock_transaction(stock, "SELL", transaction_time, reason)
+        update_sold_price(stock, last_price, False)
+        # Send the "sell" command to alpaca
+        sell(stock,qnty)
+        # Log this transaction
+        print(f'{currentTime()}: Selling {qnty} shares of {stock} at price ${last_price} per share at {transaction_time} UTC.')
+    elif recommendation == "SELL" and position == "SHORT":
+        # Close a SHORT position
+        # Update the stock database
+        update_stock_transaction(stock, "BUY",transaction_time,reason)
+        update_bought_price(stock,last_price,True)
+        # Send the "buy" command to alpaca
+        buy(stock,get_position_quantity(stock))
+        # Log this transaction
+        print(f'{currentTime()}: Purchasing {get_position_quantity(stock)} shares of {stock} at price ${last_price} per share at {transaction_time} UTC.')
+    else:
+        # Log the "pass" transaction
+        print(f'{currentTime()}: Passing on {stock} at price ${last_price} per share at {transaction_time} UTC.')
+
 ########################################################################################################################
 
 
@@ -91,21 +124,42 @@ if check_market_hours():
                     signal = high_low_trade(stock,symbols)
                     # If no trades made, do a SVR Forecast
                     if signal == 0:
-                        SVR_trade(stock,symbols)
+                        SVR_trade(stock)
                 else:
-                    # Sell assets until funds are above the minimum
+                    # Close positions until funds are above the minimum
                     print("\n")
-                    print(f'{currentTime()}: Not enough cash! Selling off assets to raise funds...')
+                    print(f'{currentTime()}: Not enough cash! Closing positions to raise funds...')
                     cash = checkCash()
+                    print(cash)
                     while cash < min_cash_limit:
-                        positions = get_positions()
-                        sell(positions[0].symbol,positions[0].qnty)
-                        last_price = yahoo_price(positions[0].symbol, period='1d', interval='1m')[-1]
-                        transaction_time = DT.datetime.strftime(DT.datetime.utcnow(), "%m/%d/%Y %H:%M")
-                        # Update the stock database
-                        reason = "Raising funds to baseline."
-                        update_stock(stock,0,"SELL",transaction_time,last_price,reason)
-                        print(f'{currentTime()}: Selling all shares of {stock} at price ${last_price} per share at {transaction_time} UTC.')
+                        for position in positions:
+                            # Check to see if it's been at least 20 hours since our last transaction with this stock
+                            last_transaction_time = DT.datetime.strptime(get_stock_info(position.symbol)[3], "%m/%d/%Y %H:%M")
+                            time_delta = DT.datetime.utcnow() - last_transaction_time
+                            if time_delta.total_seconds() > min_wait_time:
+                                if position.side == "long":
+                                    # Send sell command
+                                    sell(positions[0].symbol,positions[0].qnty)
+                                    # Update the stock database
+                                    last_price = yahoo_current_price(position.symbol)
+                                    transaction_time = DT.datetime.strftime(DT.datetime.utcnow(), "%m/%d/%Y %H:%M")
+                                    reason = "Raising funds to baseline."
+                                    update_stock_transaction(stock, "SELL", transaction_time, reason)
+                                    update_sold_price(position.symbol, last_price, True)
+                                    # Log transaction
+                                    print(f'{currentTime()}: Selling all shares of {position.symbol} at price ${last_price} per share at {transaction_time} UTC.')
+                                elif positions.side == "short":
+                                    # Send buy command
+                                    buy(positions[0].symbol,positions[0].qnty)
+                                    # Update the stock database
+                                    last_price = yahoo_current_price(positions.symbol)
+                                    transaction_time = DT.datetime.strftime(DT.datetime.utcnow(), "%m/%d/%Y %H:%M")
+                                    reason = "Raising funds to baseline."
+                                    update_stock_transaction(stock, "BUY", transaction_time, reason)
+                                    update_bought_price(positions.symbol, last_price, True)
+                                    # Log transaction
+                                    print(f'{currentTime()}: Buying all shares of {positions.symbol} at price ${last_price} per share at {transaction_time} UTC.')
+
             else:
                 print(f'{currentTime()}: Stock {stock} has been traded within the past 20 hours. Will check again later.')
     else:

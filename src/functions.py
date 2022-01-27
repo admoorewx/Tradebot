@@ -1,19 +1,14 @@
-from alpaca_trade_api.rest import REST, TimeFrame
-
 from scipy import interpolate
-from scipy.optimize import curve_fit, leastsq
-from scipy.signal import correlation_lags, correlate
+from scipy import stats
 from scipy.stats import spearmanr
+from finta import TA
 
-import datetime as DT
 import yfinance as YF
-import matplotlib.pyplot as plt
 import numpy as np
-import os
 import seaborn as sns; sns.set()
 import pandas as pd
 import datetime
-from finta import TA
+
 
 def root_mean_squared_error(truth,est):
     truth = np.asarray(truth)
@@ -95,41 +90,75 @@ def yahoo_hist(stock,period="1y",interval="1d"):
     """
     dat = YF.Ticker(stock)
     hist = dat.history(period=period,interval=interval)
+    hist = preprocess(hist)
     return hist
 
 def yahoo_price(stock,period="1y",interval="1d"):
     """
     Returns just the closing stock price of the input stock ticker.
     """
-    dat = YF.Ticker(stock)
-    return dat.history(period=period,interval=interval)["Close"]
+    df = yahoo_hist(stock,period,interval)
+    return df["Close"]
+
+def yahoo_current_price(stock):
+    stk = YF.Ticker(stock)
+    return stk.info["currentPrice"]
 
 def clean_data(X,Y):
     """
-    Use scipy interpolate 1D to perform a cubic interpolation to fill NaN values.
+    Use scipy interpolate 1D to perform a linear interpolation to fill NaN values.
     Note: this will extrapolate if NaNs are found at the start or end of "Y".
     """
     inds_to_fill = np.where(np.isnan(Y))[0]
     valid_X = [x for i,x in enumerate(X) if not np.isnan(Y[i])]
     valid_Y = [y for y in Y if not np.isnan(y)]
-    func = interpolate.interp1d(valid_X,valid_Y,kind="cubic",bounds_error=False,fill_value="extrapolate")
+    func = interpolate.interp1d(valid_X,valid_Y,kind="linear",bounds_error=False,fill_value="extrapolate")
     values_to_fill = func(inds_to_fill)
     for i,ind in enumerate(inds_to_fill):
         valid_Y.insert(ind,values_to_fill[i])
     return valid_Y
 
-def preprocess(hist):
-    X = [i for i in range(0,len(hist["Open"]))]
-    # Clean initial data
-    hist["Open"] = clean_data(X,hist["Open"])
-    hist["Close"] = clean_data(X,hist["Close"])
-    hist["High"] = clean_data(X,hist["High"])
-    hist["Low"] = clean_data(X,hist["Low"])
-    hist["Volume"] = clean_data(X,hist["Volume"])
-    # Delete params that aren't needed
-    del hist["Dividends"]
-    del hist["Stock Splits"]
-    return hist
+def preprocess(df):
+    # Create a new dataframe to return
+    new_df = pd.DataFrame()
+    # Figure out the common interval between time stamps
+    timestamps = [i for i in df.index]
+    deltas = []
+    for t,time in enumerate(timestamps):
+        try:
+            delta = time - timestamps[t-1]
+            deltas.append(delta.total_seconds())
+        except:
+            pass
+    mode = stats.mode(deltas)[0][0]
+    # Now create a new time stamp series with timestamps at each interval (i.e. no gaps)
+    start = timestamps[0]
+    end = timestamps[-1]
+    current = start
+    new_ts = []
+    while current <= end:
+        new_ts.append(current)
+        current = current + datetime.timedelta(seconds=mode)
+    # Set the new index
+    new_df.index = new_ts
+    # Create a series of X values for interpolation in clean_data()
+    X = [i for i in range(0,len(new_ts))]
+    # Figure out where the original data fits within the new_ts series
+    inds = []
+    for i in timestamps:
+        try:
+            inds.append(new_ts.index(i))
+        except:
+            pass
+    # Loop through each column in the df and fill in missing data
+    # Assign the filled-in data to new_df
+    for item in df:
+        Y = [np.nan for i in range(0,len(new_ts))]
+        for x in range(0,len(inds)):
+            Y[inds[x]] = df[item][x]
+        new_df[item] = clean_data(X,Y)
+    # Return the new dataframe
+    return new_df
 
 def determine_quantity(stock,cash,percentage):
     stock_price = yahoo_price(stock,period='1d',interval='1m')[-1]

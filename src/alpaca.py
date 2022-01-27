@@ -2,7 +2,7 @@ from alpaca_trade_api.rest import REST, TimeFrame
 import os
 
 os.environ['APCA_API_BASE_URL'] = 'https://paper-api.alpaca.markets'
-api = REST('PK9KGYIPW7688M5ID39S', 'CrnWvypaW0iCZHqGgL2O3QjJbBPIVAImBJFeVcBX', api_version='v2')
+api = REST('PKQZR9P77D4ENB0MJSAP', 'dx8rqGPLyBcjFmAJPI64uCUvbCoL5IJnLMcAc84Z', api_version='v2')
 account = api.get_account()
 
 
@@ -68,4 +68,7 @@ def sell(stock,qnty):
 def nuclear():
     positions = get_positions()
     for position in positions:
-        sell(position.symbol,position.qnty)
+        if position.side == "long":
+            sell(position.symbol,position.qnty)
+        else:
+            buy(position.symbol, position.qnty)
