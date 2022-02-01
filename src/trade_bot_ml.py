@@ -49,7 +49,10 @@ def SVR_trade(stock):
     print(f'{currentTime()}: SVR forecast {stock} Recommendation: {recommendation} with reason: {reason}')
     # Get the current position of the stock
     position = get_stock_info(stock)[1]
-    last_price = yahoo_current_price(stock)
+    try:
+        last_price = yahoo_current_price(stock)
+    except:
+        last_price = yahoo_price(stock,period="1d",interval="1m")["Close"][-1]
     transaction_time = DT.datetime.strftime(DT.datetime.utcnow(), "%m/%d/%Y %H:%M")
     if recommendation == "BUY" and position == "NONE":
         # Open a LONG position
@@ -163,7 +166,7 @@ if check_market_hours():
             else:
                 print(f'{currentTime()}: Stock {stock} has been traded within the past 20 hours. Will check again later.')
     else:
-        print(f'{currentTime()}: Account has been blocked! Check Alpaca account for details.')
+        print(f'{currentTime()}: Account has been blocked! Check Alpaca for details.')
 else:
     print(f'{currentTime()}: Market Closed. No trades made.')
 

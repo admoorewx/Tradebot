@@ -71,55 +71,53 @@ def update_stock_transaction(stock,transaction,transaction_time,reason):
     cursor.execute(f'UPDATE stocks SET last_transaction = "{transaction}" WHERE symbol="{stock}";')
     cursor.execute(f'UPDATE stocks SET last_transaction_time = "{transaction_time}" WHERE symbol="{stock}";')
     cursor.execute(f'UPDATE stocks SET transaction_reason = "{reason}" WHERE symbol="{stock}";')
+    connection.commit()
     connection.close()
     print(f'{currentTime()}: Updated stock {stock} transaction successfully.')
 
 def update_position(stock,position):
     connection, cursor = database()
     cursor.execute(f'UPDATE stocks SET position= "{position}" WHERE symbol="{stock}";')
+    connection.commit()
     connection.close()
 
 def update_bought_price(stock,price,owned):
     price = round(price,2)
     connection, cursor = database()
-    update_bp = f'UPDATE stocks SET bought_price = "{price}" WHERE symbol="{stock}";'
     if owned: # Exiting a short position
         update_position(stock, "NONE")
         cursor.execute(f'SELECT sold_price FROM stocks WHERE symbol = "{stock}";')
         sp = cursor.fetchone()[0]
         net = sp - price
-        update_net = f'UPDATE stocks SET net = "{net}" WHERE symbol="{stock}";'
-        for command in [update_net,update_bp]:
-            cursor.execute(command)
+        cursor.execute(f'UPDATE stocks SET net = "{net}" WHERE symbol="{stock}";')
     else: # entering a long position
         update_position(stock, "LONG")
-        update_net = f'UPDATE stocks SET net = "0.00" WHERE symbol="{stock}";'
-        update_sp = f'UPDATE stocks SET sold_price = "0.00" WHERE symbol="{stock}";'
-        for command in [update_net,update_bp,update_sp]:
-            cursor.execute(command)
+        cursor.execute(f'UPDATE stocks SET net = "0.00" WHERE symbol="{stock}";')
+        cursor.execute(f'UPDATE stocks SET sold_price = "0.00" WHERE symbol="{stock}";')
+    cursor.execute(f'UPDATE stocks SET bought_price = "{price}" WHERE symbol="{stock}";')
+    connection.commit()
     connection.close()
     print(f'{currentTime()}: Updated stock {stock} prices successfully.')
+
 
 def update_sold_price(stock,price,owned):
     price = round(price, 2)
     connection, cursor = database()
-    update_sp = f'UPDATE stocks SET sold_price = "{price}" WHERE symbol="{stock}";'
     if owned: # Exiting a long position
         update_position(stock,"NONE")
         cursor.execute(f'SELECT bought_price FROM stocks WHERE symbol = "{stock}";')
         bp = cursor.fetchone()[0]
         net = price - bp
-        update_net = f'UPDATE stocks SET net = "{net}" WHERE symbol="{stock}";'
-        for command in [update_net,update_sp]:
-            cursor.execute(command)
+        cursor.execute(f'UPDATE stocks SET net = "{net}" WHERE symbol="{stock}";')
     else: # entering a short position
         update_position(stock, "SHORT")
-        update_net = f'UPDATE stocks SET net = "0.00" WHERE symbol="{stock}";'
-        update_bp = f'UPDATE stocks SET bought_price = "0.00" WHERE symbol="{stock}";'
-        for command in [update_net,update_bp,update_sp]:
-            cursor.execute(command)
+        cursor.execute(f'UPDATE stocks SET bought_price = "0.00" WHERE symbol="{stock}";')
+    cursor.execute(f'UPDATE stocks SET sold_price = "{price}" WHERE symbol="{stock}";')
+    connection.commit()
     connection.close()
     print(f'{currentTime()}: Updated stock {stock} prices successfully.')
+
+
 
 def delete_stock(stock):
     connection, cursor = database()
@@ -160,4 +158,3 @@ def create_report(email=False):
         with open("stock_report_" + report_time + ".txt", "w") as report:
             report.writelines(lines)
         report.close()
-

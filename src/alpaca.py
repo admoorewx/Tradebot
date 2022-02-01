@@ -2,7 +2,7 @@ from alpaca_trade_api.rest import REST, TimeFrame
 import os
 
 os.environ['APCA_API_BASE_URL'] = 'https://paper-api.alpaca.markets'
-api = REST('', '', api_version='v2')
+api = REST('PKLQK4S2A52DYIS35YWW', 'SZEaTfhCJUjIjyE6wQvds2hSvaEcAYpcXrR2qtTe', api_version='v2')
 account = api.get_account()
 
 
@@ -56,6 +56,7 @@ def buy(stock,qnty):
         time_in_force='day'
     )
 
+
 def sell(stock,qnty):
     api.submit_order(
         symbol=stock,
@@ -64,6 +65,7 @@ def sell(stock,qnty):
         type='market',
         time_in_force='day'
     )
+
 
 def nuclear():
     positions = get_positions()
