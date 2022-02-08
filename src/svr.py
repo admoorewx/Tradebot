@@ -81,38 +81,30 @@ def SVR_forecast(stock,period="6mo",interval="1h",forecast_length=48,ensemble_me
     return reccomendation, reason
 
 
-def SVR_forecast_train(stock,period="6mo",interval="1h",forecast_length=24,ensemble_members=100):
+def SVR_forecast_train(price_data,forecast_length=48,ensemble_members=100):
     """
-    Performs an SVR regression ensemble forecast and returns a recommendation
-    stock = target stock ticker (string)
-    period = length of time to get price data over (string) examples: "1mo", "3mo", "1w", "1y"...
-    interval = frequency of price data (string) examples: "1m", "5m", "1h", "1d"...
-    forecast_length = Number of hours to produce a forecast for (int)
-    ensemble_members = The number of ensemble members to use in the forecast (int)
-    Returns: String specifying a buy, sell, or hold recommendation.
+    This training version of the SVR model is the same as the normal version (above), but
+    directly takes the price data as an input variable. This allows for historical data to easily
+    be ingested. This will still produce a recommendation as before.
     """
-
-    # # Get the data from the YF API
-    price = yahoo_price(stock,period=period,interval=interval)
-    # Clean the data and normalize
-    price = normalize(clean_data(np.arange(0,len(price)),price))
+    price = price_data
 
     X = np.arange(0,len(price))
     y = np.asarray(price)
 
-    start = 0
-    end = len(y) - forecast_length
-    min_hours = 19
+    forecast_periods = [X[-1] + i for i in range(0,forecast_length)]
+    forecast_periods = np.asarray(forecast_periods)
+    forecast_window_start = -4 # default is # of hours before the default 24-hour mark.
+    # Recommendation is to keep this value at 5 hours or less to help avoid PDT rules and give a more accurate forecast.
 
     recs = []
     valid_forecasts = []
-    error = []
     model_fits = []
     for i in range(0,ensemble_members):
         # Split the training/testing data
-        X1, X2, y1, y2 = train_test_split(X[start:end], y[start:end],train_size=0.7)
+        X1, X2, y1, y2 = train_test_split(X, y,train_size=0.7)
         # Create the SVR model
-        model = NuSVR(kernel='rbf', tol=np.std(y))
+        model = NuSVR(kernel='rbf', tol=np.std(y),C=np.std(y))
         # Fit the data
         model.fit(X1.reshape(-1,1), y1)
         # Collect model fit statistics
@@ -120,50 +112,43 @@ def SVR_forecast_train(stock,period="6mo",interval="1h",forecast_length=24,ensem
         model_fit_error = root_mean_squared_error(y[X2],ypredict)
         model_fits.append(model_fit_error)
         # Create the forecast and get error statistics
-        forecast = model.predict(X[end:].reshape(-1,1))
+        forecast = model.predict(forecast_periods.reshape(-1,1))
         forecast_errors = [np.random.normal(loc=0.0,scale=(np.std(y)*(i/(5.0*len(forecast))))) for i in range(len(forecast))]
         forecast = forecast + forecast_errors
         # Find the RMSE of the forecast
-        score = root_mean_squared_error(y[end:],forecast)
-        error.append(score)
+
         # Find the last model fitted price value before the forecast began
         last_ind = np.where(X2 == np.nanmax(X2))[0]
         last_yp = ypredict[last_ind]
-        window = len(forecast) - min_hours
 
         # See if the first forecast value is substantially difference than the last known price value
         # If so, don't use this forecast.
-        if np.abs(forecast[0]-y[end]) > (np.std(y) * 0.5):
+        if np.abs(forecast[0]-y[-1]) > (np.std(y) * 0.5):
             valid_forecasts.append(-1)
         else: # Only get forecasts from the valid ensemble members.
             valid_forecasts.append(1)
-            for ff in forecast[window:]:
+            for ff in forecast[forecast_window_start:]:
                 recs.append((ff-last_yp))
 
-    # Get the buy/sell/hold recommendation
+    # Get the buy/sell/hold recommendation and reason
     if np.mean(valid_forecasts) > 0.4:
         if np.mean(recs) > 0.0:
-            recommend = "BUY"
+            reccomendation = "BUY"
             reason = "Price Expected to rise."
-            net = y[-1] - y[end]
         elif np.mean(recs) < 0.0:
-            recommend = "SELL"
+            reccomendation =  "SELL"
             reason = "Price Expected to fall."
-            net = y[-1] - y[end]
         else:
-            recommend = "PASS"
+            reccomendation =  "PASS"
             reason = "Little price fluctuation expected."
-            net = 0.0
     elif np.var(model_fits) <= 0.008:
-        recommend = "PASS"
+        reccomendation =  "PASS"
         reason = "Potential model overfit."
-        net = 0.0
     else:
-        recommend = "PASS"
-        reason = "Inaccurate model initialization."
-        net = 0.0
+        reccomendation = "PASS"
+        reason = "Inaccurate forecast initialization."
+    return reccomendation, reason
 
-    return recommend, reason, net
 
 
 def SVR_forecast_plot(stock,period="6mo",interval="1h",forecast_length=48,ensemble_members=100):

@@ -2,7 +2,7 @@ from scipy import interpolate
 from scipy import stats
 from scipy.stats import spearmanr
 from finta import TA
-
+from alpaca import get_position
 import yfinance as YF
 import numpy as np
 import seaborn as sns; sns.set()
@@ -104,6 +104,12 @@ def yahoo_current_price(stock):
     stk = YF.Ticker(stock)
     return stk.info["currentPrice"]
 
+def yahoo_old_price(stock,startdate,enddate):
+    dat = YF.Ticker(stock)
+    hist = dat.history(stock,start=startdate,end=enddate)
+    hist = preprocess(hist)
+    return hist["Close"]
+
 def clean_data(X,Y):
     """
     Use scipy interpolate 1D to perform a linear interpolation to fill NaN values.
@@ -179,9 +185,9 @@ def high_low_check(price_hist, period_length):
     checkmax = np.where(price_hist[-period_length:] >= max_thres)
     checkmin = np.where(price_hist[-period_length:] <= min_thres)
     if np.any(checkmax):
-        return -1 # if hitting max, sell
+        return 1
     elif np.any(checkmin):
-        return 1 # if hitting min, buy
+        return -1
     else:
         return 0
 
@@ -206,3 +212,39 @@ def VWAP(df):
 
 def markmo(df):
     return TA.MOM(df)
+
+def position_check(stock,loss_control=0.10):
+    """
+    Check the current price of a stock and compare to the price the stock was
+    bought or sold at. If there is a net gain, then close the position. If there is a
+    net loss, close the position if the loss is too high; do nothing if the loss is small.
+    Input:
+    stock - string, stock symbol
+    loss_control - percent, close threshold. (I.e. if the loss is greater than this percentage of the stock's price, close position.)
+    Output:
+    rec - string, either "BUY", "SELL", or "PASS".
+    reason - string, reason for rec
+    """
+    # get the stock's latest gain/loss
+    position = get_position(stock)
+    net = float(position.unrealized_pl)
+    # take action based on gain/loss
+    if net > 0.0:
+        reason = "Gains realized."
+        # close the position
+        if position.side == "long":
+            rec = "SELL"
+        else:
+            rec = "BUY"
+    else:
+        if abs(float(position.unrealized_plpc)) > loss_control:
+            reason = "Losses too high."
+            # close the position
+            if position.side == "long":
+                rec = "SELL"
+            else:
+                rec = "BUY"
+        else:
+            reason = "Losses manageable."
+            rec = "PASS"
+    return rec, reason

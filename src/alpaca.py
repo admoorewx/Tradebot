@@ -2,7 +2,7 @@ from alpaca_trade_api.rest import REST, TimeFrame
 import os
 
 os.environ['APCA_API_BASE_URL'] = 'https://paper-api.alpaca.markets'
-api = REST('', '', api_version='v2')
+api = REST('PKLQK4S2A52DYIS35YWW', 'SZEaTfhCJUjIjyE6wQvds2hSvaEcAYpcXrR2qtTe', api_version='v2')
 account = api.get_account()
 
 
@@ -43,6 +43,9 @@ def tradable_status(stock):
 
 def get_positions():
     return api.list_positions()
+
+def get_position(stock):
+    return api.get_position(stock)
 
 def get_position_quantity(stock):
     return api.get_position(stock).qty

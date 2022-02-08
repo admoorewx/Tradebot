@@ -112,6 +112,7 @@ def update_sold_price(stock,price,owned):
     else: # entering a short position
         update_position(stock, "SHORT")
         cursor.execute(f'UPDATE stocks SET bought_price = "0.00" WHERE symbol="{stock}";')
+        cursor.execute(f'UPDATE stocks SET net = "0.00" WHERE symbol="{stock}";')
     cursor.execute(f'UPDATE stocks SET sold_price = "{price}" WHERE symbol="{stock}";')
     connection.commit()
     connection.close()
@@ -121,7 +122,7 @@ def update_sold_price(stock,price,owned):
 
 def delete_stock(stock):
     connection, cursor = database()
-    delete_command = f'DELETE FROM emp WHERE symbol="{stock}";'
+    delete_command = f'DELETE FROM stocks WHERE symbol="{stock}";'
     cursor.execute(delete_command)
     connection.commit()
     connection.close()
