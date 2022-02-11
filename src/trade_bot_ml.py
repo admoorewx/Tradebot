@@ -219,18 +219,17 @@ if check_market_hours():
                     print("\n")
                     print(f'{currentTime()}: Not enough cash! Closing positions to raise funds...')
                     cash = checkCash()
-                    print(cash)
-                    while cash < min_cash_limit:
-                        for position in positions:
+                    for position in positions:
+                        while cash < min_cash_limit:
                             # Check to see if it's been at least 20 hours since our last transaction with this stock
                             last_transaction_time = DT.datetime.strptime(get_stock_info(position.symbol)[3], "%m/%d/%Y %H:%M")
                             time_delta = DT.datetime.utcnow() - last_transaction_time
                             if time_delta.total_seconds() > min_wait_time:
                                 if position.side == "long":
                                     # Send sell command
-                                    sell(positions[0].symbol,positions[0].qnty)
+                                    sell(position.symbol, float(position.qty))
                                     # Update the stock database
-                                    last_price = yahoo_current_price(position.symbol)
+                                    last_price = float(position.current_price)
                                     transaction_time = DT.datetime.strftime(DT.datetime.utcnow(), "%m/%d/%Y %H:%M")
                                     reason = "Raising funds to baseline."
                                     update_stock_transaction(stock, "SELL", transaction_time, reason)
@@ -239,16 +238,18 @@ if check_market_hours():
                                     print(f'{currentTime()}: Selling all shares of {position.symbol} at price ${last_price} per share at {transaction_time} UTC.')
                                 elif positions.side == "short":
                                     # Send buy command
-                                    buy(positions[0].symbol,positions[0].qnty)
+                                    buy(positions.symbol, abs(float(position.qty)))
                                     # Update the stock database
-                                    last_price = yahoo_current_price(positions.symbol)
+                                    last_price = float(position.current_price)
                                     transaction_time = DT.datetime.strftime(DT.datetime.utcnow(), "%m/%d/%Y %H:%M")
                                     reason = "Raising funds to baseline."
                                     update_stock_transaction(stock, "BUY", transaction_time, reason)
-                                    update_bought_price(positions.symbol, last_price, True)
+                                    update_bought_price(position.symbol, last_price, True)
                                     # Log transaction
-                                    print(f'{currentTime()}: Buying all shares of {positions.symbol} at price ${last_price} per share at {transaction_time} UTC.')
-
+                                    print(f'{currentTime()}: Buying all shares of {position.symbol} at price ${last_price} per share at {transaction_time} UTC.')
+                            else:
+                                print(f'{currentTime()}: Can not buy/sell position {position.symbol}, assest traded too recently.')
+                        break # End the fire sale
             else:
                 print(f'{currentTime()}: Stock {stock} has been traded within the past 20 hours. Will check again later.')
     else:
