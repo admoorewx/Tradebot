@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from functions import preprocess, yahoo_hist, SMA, bbands, EMA, RSI, yahoo_stock_info
+from functions import preprocess, yahoo_hist, SMA, bbands, EMA, RSI
 
 def plot_scatter(X, Y, xlabel, ylabel, title=""):
     plt.figure()
@@ -81,8 +81,8 @@ def tech_chart(stock,df):
     plt.tight_layout()
     plt.savefig("tech_chart_"+stock+".png")
 
-stock = "AMZN"
-yahoo_stock_info(stock)
+# stock = "AMZN"
+# yahoo_stock_info(stock)
 # hist = yahoo_hist(stock,period="3mo",interval="1d")
 # hist = preprocess(hist)
 

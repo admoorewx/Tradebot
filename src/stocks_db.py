@@ -1,9 +1,12 @@
 import sqlite3
 import json
 import datetime
-from functions import currentTime
 from alpaca import checkCash, checkEquity, gainloss
 from emailer import send_email
+
+def currentTime():
+    now = datetime.datetime.utcnow()
+    return datetime.datetime.strftime(now, "%m/%d/%Y %H:%M:%S")
 
 def database():
     connection = sqlite3.connect('stocks.db')

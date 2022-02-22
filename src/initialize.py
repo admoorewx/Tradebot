@@ -1,7 +1,7 @@
 import stocks_db as STD
 
 # Enter the path to the stock_list.json file here
-json_path = ""
+json_path = "/home/icebear/Tradebot/stock_list.json"
 
 STD.database()
 STD.initialize()

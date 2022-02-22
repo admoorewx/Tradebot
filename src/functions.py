@@ -10,6 +10,7 @@ import pandas as pd
 import datetime
 
 
+
 def root_mean_squared_error(truth,est):
     truth = np.asarray(truth)
     est = np.asarray(est)
@@ -18,7 +19,7 @@ def root_mean_squared_error(truth,est):
     else:
         print(f'ERROR: input arrays are not the same length! ({len(truth)} and {len(est)})')
         return None
-
+########################################################################################################################
 def delta_to_binary(x):
     bins = []
     for X in x:
@@ -27,7 +28,7 @@ def delta_to_binary(x):
         else:
             bins.append(0)
     return bins
-
+########################################################################################################################
 def momentum(x,interval=10):
     mo = []
     for i in range(len(x)):
@@ -39,12 +40,12 @@ def momentum(x,interval=10):
             end = i
         mo.append(x[end] - x[start])
     return mo
-
+########################################################################################################################
 def delta(x):
     deltas = [x[i+1] - x[i] for i in range(0,len(x)-1)]
     deltas.insert(0,0.0)
     return deltas
-
+########################################################################################################################
 def zero_freq(x):
     count = 0
     if x[0] > 0:
@@ -61,12 +62,12 @@ def zero_freq(x):
         else:
             pass
     return count
-
+########################################################################################################################
 def normalize(x):
     mx = np.nanmax(x)
     mn = np.nanmin(x)
     return [(i - mn)/(mx-mn) for i in x]
-
+########################################################################################################################
 def time_lagged_corr(col1, col2, lag=0):
     # tempdf = pd.Dataframe()
     # tempdf[col1] = df[col1]
@@ -83,7 +84,7 @@ def time_lagged_corr(col1, col2, lag=0):
     inds = np.where(np.isnan(newcol) == False)[0]
     newcol = np.asarray(newcol)
     return spearmanr(newcol[inds],col2[inds])[0]
-
+########################################################################################################################
 def yahoo_hist(stock,period="1y",interval="1d"):
     """
     Gets the open, close, high, low, volume, dividens and splits for input stock ticker.
@@ -92,24 +93,25 @@ def yahoo_hist(stock,period="1y",interval="1d"):
     hist = dat.history(period=period,interval=interval)
     hist = preprocess(hist)
     return hist
-
+########################################################################################################################
 def yahoo_price(stock,period="1y",interval="1d"):
     """
     Returns just the closing stock price of the input stock ticker.
     """
     df = yahoo_hist(stock,period,interval)
+    df = preprocess(df)
     return df["Close"]
-
+########################################################################################################################
 def yahoo_current_price(stock):
     stk = YF.Ticker(stock)
     return stk.info["currentPrice"]
-
+########################################################################################################################
 def yahoo_old_price(stock,startdate,enddate):
     dat = YF.Ticker(stock)
     hist = dat.history(stock,start=startdate,end=enddate)
     hist = preprocess(hist)
     return hist["Close"]
-
+########################################################################################################################
 def clean_data(X,Y):
     """
     Use scipy interpolate 1D to perform a linear interpolation to fill NaN values.
@@ -123,7 +125,7 @@ def clean_data(X,Y):
     for i,ind in enumerate(inds_to_fill):
         valid_Y.insert(ind,values_to_fill[i])
     return valid_Y
-
+########################################################################################################################
 def preprocess(df):
     # Create a new dataframe to return
     new_df = pd.DataFrame()
@@ -165,7 +167,7 @@ def preprocess(df):
         new_df[item] = clean_data(X,Y)
     # Return the new dataframe
     return new_df
-
+########################################################################################################################
 def determine_quantity(stock,cash,percentage):
     stock_price = yahoo_price(stock,period='1d',interval='1m')[-1]
     if stock_price <= (cash * percentage):
@@ -173,7 +175,7 @@ def determine_quantity(stock,cash,percentage):
     else:
         qty = round((percentage*cash)/stock_price,3)
         return str(qty)
-
+########################################################################################################################
 def high_low_check(price_hist, period_length):
     """
     Check to see if the price history has reach a relative max or min in the last "period_length"
@@ -190,29 +192,29 @@ def high_low_check(price_hist, period_length):
         return -1
     else:
         return 0
-
+########################################################################################################################
 def currentTime():
     now = datetime.datetime.utcnow()
     return datetime.datetime.strftime(now, "%m/%d/%Y %H:%M:%S")
-
+########################################################################################################################
 def SMA(df,window):
     return TA.SMA(df,window)
-
+########################################################################################################################
 def bbands(df):
     return TA.BBANDS(df)
-
+########################################################################################################################
 def EMA(df,window):
     return TA.EMA(df,window)
-
+########################################################################################################################
 def RSI(df):
     return TA.RSI(df)
-
+########################################################################################################################
 def VWAP(df):
     return TA.VWAP(df)
-
+########################################################################################################################
 def markmo(df):
     return TA.MOM(df)
-
+########################################################################################################################
 def position_check(stock,loss_control=0.10):
     """
     Check the current price of a stock and compare to the price the stock was
@@ -248,3 +250,5 @@ def position_check(stock,loss_control=0.10):
             reason = "Losses manageable."
             rec = "PASS"
     return rec, reason
+
+

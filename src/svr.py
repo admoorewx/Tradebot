@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVR, NuSVR
 from functions import normalize, root_mean_squared_error, yahoo_price, clean_data
@@ -184,7 +185,8 @@ def SVR_forecast_plot(stock,period="6mo",interval="1h",forecast_length=48,ensemb
         # Split the training/testing data
         X1, X2, y1, y2 = train_test_split(X, y,train_size=0.7)
         # Create the SVR model
-        model = NuSVR(kernel='rbf', tol=np.std(y),C=np.std(y))
+        tolerance = abs(random.gauss(0.0, 0.001))
+        model = NuSVR(kernel='rbf', tol=tolerance)
         # Fit the data
         model.fit(X1.reshape(-1,1), y1)
         # Collect model fit statistics
@@ -193,7 +195,7 @@ def SVR_forecast_plot(stock,period="6mo",interval="1h",forecast_length=48,ensemb
         model_fits.append(model_fit_error)
         # Create the forecast and get error statistics
         forecast = model.predict(forecast_periods.reshape(-1,1))
-        forecast_errors = [np.random.normal(loc=0.0,scale=(np.std(y)*(i/(5.0*len(forecast))))) for i in range(len(forecast))]
+        forecast_errors = [np.random.normal(loc=0.0,scale=(np.std(y)*(i/(10.0*len(forecast))))) for i in range(len(forecast))]
         forecast = forecast + forecast_errors
         # Find the RMSE of the forecast
 
@@ -237,7 +239,7 @@ def SVR_forecast_plot(stock,period="6mo",interval="1h",forecast_length=48,ensemb
     # Plot the price data and save the figure
     plt.plot(X,y,color='k')
     plt.title(f'{stock} Forecast - Recommendation: {reccomendation}')
-    plt.xlim(0,len(X)+len(forecast))
+    plt.xlim(int(len(X)*0.0),len(X)+len(forecast))
     plt.ylim(0,1.2)
     plt.savefig(stock+".png")
     plt.close('all')
