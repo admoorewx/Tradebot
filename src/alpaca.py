@@ -2,7 +2,7 @@ from alpaca_trade_api.rest import REST, TimeFrame
 import os
 
 os.environ['APCA_API_BASE_URL'] = 'https://paper-api.alpaca.markets'
-api = REST('', '', api_version='v2')
+api = REST('PKBOM4UMG57PJK849WPW', 'hj5hteWxT7IfNxPs4igq8xycl0T2F1ppU8zDlQgA', api_version='v2')
 account = api.get_account()
 
 
@@ -53,24 +53,24 @@ def get_position_quantity(stock):
 def all_avail_stocks():
     return api.list_assets(status='active')
 
-def buy(stock,qnty):
+def buy(stock,qnty,order_type="market"):
     # print(f'Bought {qnty} shares of {stock}')
     api.submit_order(
         symbol=stock,
         qty=qnty,
         side='buy',
-        type='market',
+        type=order_type,
         time_in_force='day'
     )
 
 
-def sell(stock,qnty):
+def sell(stock,qnty,order_type="market"):
     # print(f'Sold {qnty} shares of {stock}')
     api.submit_order(
         symbol=stock,
         qty=qnty,
         side='sell',
-        type='market',
+        type=order_type,
         time_in_force='day'
     )
 
@@ -82,3 +82,7 @@ def nuclear():
             sell(position.symbol,float(position.qnty))
         else:
             buy(position.symbol, abs(float(position.qnty)))
+
+
+def get_crypto_quote(sym):
+    return api.get_crypto_snapshot(symbol=sym,exchange="CBSE").latest_quote.ap
